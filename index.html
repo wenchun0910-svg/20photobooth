@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雲端智能拍貼機</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        /* 閃光燈特效 */
+        #flash-overlay {
+            transition: opacity 0.1s ease-out;
+            pointer-events: none;
+        }
+        /* 隱藏捲軸但可滾動 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 漂亮的自訂捲軸 */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+
+    <!-- 極限防呆：若外部模組載入失敗，3秒後強制進入系統 -->
+    <script>
+        setTimeout(() => {
+            const loader = document.getElementById('global-loading');
+            if (loader && !loader.classList.contains('hidden')) {
+                loader.classList.add('hidden');
+                const booth = document.getElementById('view-booth');
+                if (booth) booth.classList.remove('hidden');
+                const innerLoader = document.getElementById('loading-state');
+                if (innerLoader) innerLoader.classList.add('hidden');
+                console.warn("連線逾時，強制啟動離線模式");
+            }
+        }, 3000);
+    </script>
+</head>
+<!-- ⭐ 移除舊背景，改用清新的灰白底色 -->
+<body class="min-h-screen text-gray-800 flex flex-col overflow-x-hidden bg-[#f8f9fa]">
+
+    <!-- ⭐ 新增：可愛動物風格 SVG 背景層 -->
+    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <!-- 藍鳥 (左上) -->
+        <svg class="absolute top-[5%] left-[5%] w-32 h-32 md:w-48 md:h-48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path d="M30,80 Q100,40 170,80 L160,110 L40,110 Z" fill="#2563eb"/>
+            <path d="M80,80 L80,150 L120,150 L120,80 Z" fill="#2563eb"/>
+            <path d="M40,110 L40,130 M60,110 L60,130 M140,110 L140,130 M160,110 L160,130 M90,150 L90,170 M100,150 L100,170 M110,150 L110,170" stroke="#1e3a8a" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="100" cy="65" r="25" fill="#2563eb"/>
+            <path d="M100,40 L115,20 L130,45 Z" fill="#eab308"/>
+            <circle cx="90" cy="60" r="3" fill="#111827"/>
+        </svg>
+
+        <!-- 紅毛獅子 (右上) -->
+        <svg class="absolute top-[5%] right-[5%] w-40 h-40 md:w-56 md:h-56" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="85" fill="#ff4d4f"/>
+            <line x1="100" y1="15" x2="100" y2="40" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+            <line x1="160" y1="40" x2="142" y2="58" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+            <line x1="185" y1="100" x2="160" y2="100" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+            <line x1="160" y1="160" x2="142" y2="142" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+            <line x1="40" y1="40" x2="58" y2="58" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+            <line x1="15" y1="100" x2="40" y2="100" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+            <line x1="40" y1="160" x2="58" y2="142" stroke="#111827" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="65" cy="80" r="20" fill="#facc15"/>
+            <circle cx="135" cy="80" r="20" fill="#facc15"/>
+            <circle cx="100" cy="115" r="55" fill="#facc15"/>
+            <path d="M85,115 Q100,135 115,115 Z" fill="#111827"/>
+            <line x1="100" y1="125" x2="100" y2="145" stroke="#111827" stroke-width="4"/>
+            <circle cx="85" cy="95" r="5" fill="#111827"/>
+            <circle cx="115" cy="95" r="5" fill="#111827"/>
+        </svg>
+
+        <!-- 綠色鱷魚 (右下) -->
+        <svg class="absolute bottom-[2%] right-[5%] w-64 h-32 md:w-80 md:h-40" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20,120 L280,120 L280,90 L260,90 L250,70 L240,90 L220,90 L210,70 L200,90 L180,90 L170,70 L160,90 L140,90 L130,70 L120,90 L100,90 L90,70 L80,90 L60,90 Q20,90 20,120 Z" fill="#84cc16"/>
+            <path d="M30,110 L40,100 L50,110 M60,110 L70,100 L80,110 M90,110 L100,100 L110,110 M120,110 L130,100 L140,110" stroke="#4d7c0f" stroke-width="3" fill="none" stroke-linejoin="round"/>
+            <rect x="70" y="120" width="15" height="20" fill="#84cc16"/>
+            <rect x="110" y="120" width="15" height="20" fill="#84cc16"/>
+            <rect x="230" y="120" width="15" height="20" fill="#84cc16"/>
+            <circle cx="95" cy="65" r="14" fill="white" stroke="#111827" stroke-width="3"/>
+            <circle cx="95" cy="65" r="5" fill="#111827"/>
+            <circle cx="125" cy="65" r="14" fill="white" stroke="#111827" stroke-width="3"/>
+            <circle cx="125" cy="65" r="5" fill="#111827"/>
+        </svg>
+
+        <!-- 紫色小魚 (右下偏上) -->
+        <svg class="absolute bottom-[18%] right-[30%] w-20 h-20 md:w-28 md:h-28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20,50 Q20,20 60,35 L60,65 Q20,80 20,50 Z" fill="#8b5cf6"/>
+            <path d="M60,35 L90,25 L85,50 L90,75 L60,65 Z" fill="#8b5cf6"/>
+            <line x1="70" y1="35" x2="70" y2="65" stroke="#4c1d95" stroke-width="3"/>
+            <line x1="80" y1="32" x2="80" y2="68" stroke="#4c1d95" stroke-width="3"/>
+            <circle cx="35" cy="45" r="3" fill="#111827"/>
+            <path d="M30,55 Q35,60 40,55" stroke="#111827" stroke-width="2" fill="none"/>
+        </svg>
+
+        <!-- 小蜜蜂 (右側邊緣) -->
+        <svg class="absolute bottom-[22%] right-[2%] w-16 h-16 md:w-20 md:h-20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="50" cy="30" rx="15" ry="25" fill="white" opacity="0.8" transform="rotate(-30 50 30)"/>
+            <ellipse cx="70" cy="30" rx="15" ry="25" fill="white" opacity="0.8" transform="rotate(30 70 30)"/>
+            <rect x="20" y="40" width="60" height="40" rx="20" fill="#facc15"/>
+            <rect x="40" y="40" width="10" height="40" fill="#111827"/>
+            <rect x="60" y="40" width="10" height="40" fill="#111827"/>
+            <circle cx="30" cy="55" r="3" fill="#111827"/>
+            <circle cx="30" cy="65" r="3" fill="#111827"/>
+        </svg>
+    </div>
+
+    <!-- 全局載入畫面 -->
+    <div id="global-loading" class="flex-1 flex flex-col items-center justify-center absolute inset-0 z-50 bg-white/80 backdrop-blur-sm">
+        <div class="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg mb-4 animate-bounce bg-white flex items-center justify-center">
+            <img src="Gemini_Generated_Image_kpq5mkpq5mkpq5mk.png" alt="Loading Logo" class="w-full h-full object-cover transform scale-[1.5] -translate-x-[8%] -translate-y-[4%]">
+        </div>
+        <p class="text-gray-800 font-bold tracking-widest text-lg">系統啟動中...</p>
+    </div>
+
+    <!-- 主視圖：拍貼機畫面 -->
+    <div id="view-booth" class="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative hidden w-full overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-center mb-2 md:mb-4 bg-white/70 px-6 py-2 rounded-full backdrop-blur-sm shadow-sm">
+            <div class="w-10 h-10 md:w-14 md:h-14 mr-3 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center shrink-0">
+                <img src="Gemini_Generated_Image_kpq5mkpq5mkpq5mk.png" alt="Logo" class="w-full h-full object-cover transform scale-[1.6] -translate-x-[8%] -translate-y-[4%]">
+            </div>
+            <!-- ⭐ 套用動態標題 class -->
+            <h1 class="dynamic-site-title text-2xl md:text-3xl lg:text-4xl font-black text-gray-800 tracking-wider">智能拍貼機</h1>
+        </div>
+        
+        <!-- 相機與畫布容器 -->
+        <div class="relative w-full max-w-[95vw] sm:max-w-[500px] md:max-w-[60vh] lg:max-w-[70vh] xl:max-w-[75vh] aspect-square bg-white p-2 rounded-3xl shadow-xl overflow-hidden ring-1 ring-gray-200 shrink-0">
+            <div class="w-full h-full relative rounded-2xl overflow-hidden bg-gray-900">
+                <video id="webcam" autoplay playsinline class="hidden"></video>
+                <canvas id="output_canvas" class="w-full h-full object-cover"></canvas>
+                
+                <div id="flash-overlay" class="absolute inset-0 bg-white opacity-0 z-50"></div>
+                <div id="countdown-text" class="absolute inset-0 flex items-center justify-center text-white text-9xl font-bold drop-shadow-lg opacity-0 z-40" style="text-shadow: 0 4px 10px rgba(0,0,0,0.5);"></div>
+                
+                <div id="loading-state" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-80 text-white z-30">
+                    <i class="fa-solid fa-spinner fa-spin text-4xl mb-3"></i>
+                    <p id="loading-text" class="text-sm">正在初始化相機與 AI...</p>
+                </div>
+
+                <div id="gesture-hint" class="absolute top-4 left-0 right-0 text-center z-20 pointer-events-none hidden">
+                    <span class="bg-black bg-opacity-50 text-white px-4 md:px-6 py-2 md:py-3 rounded-full text-sm md:text-base backdrop-blur-sm shadow-lg">
+                        <i class="fa-solid fa-hand text-yellow-300"></i> 對鏡頭比 🖐 開始自拍
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制按鈕 -->
+        <div class="mt-4 md:mt-6 flex flex-col items-center z-10 w-full max-w-[95vw] sm:max-w-[500px] md:max-w-[60vh] lg:max-w-[70vh] xl:max-w-[75vh] shrink-0 mb-4 bg-white/70 p-4 rounded-3xl backdrop-blur-md shadow-sm border border-white">
+            
+            <!-- 拍攝模式切換 -->
+            <div class="flex gap-3 justify-center w-full px-2 mb-4">
+                <button id="btn-mode-1" class="flex-1 py-2 rounded-full text-sm font-bold transition shadow-md bg-pink-500 text-white border-2 border-pink-500">
+                    <i class="fa-solid fa-camera mr-1"></i> 拍 1 張
+                </button>
+                <button id="btn-mode-4" class="flex-1 py-2 rounded-full text-sm font-bold transition shadow-sm bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200">
+                    <i class="fa-solid fa-border-all mr-1"></i> 拍 4 張 (拼圖)
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between w-full px-2 mb-3">
+                <button id="btn-prev-frame" class="w-12 h-12 md:w-14 md:h-14 bg-white rounded-full shadow border border-gray-100 text-gray-600 hover:text-pink-500 hover:bg-pink-50 transition flex items-center justify-center text-xl transform hover:-translate-x-1">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button id="btn-take-photo" class="w-20 h-20 md:w-24 md:h-24 bg-pink-500 rounded-full shadow-lg text-white hover:bg-pink-600 transition flex items-center justify-center border-4 border-white transform hover:scale-105 z-10">
+                    <i class="fa-solid fa-camera text-3xl md:text-4xl"></i>
+                </button>
+                <button id="btn-next-frame" class="w-12 h-12 md:w-14 md:h-14 bg-white rounded-full shadow border border-gray-100 text-gray-600 hover:text-pink-500 hover:bg-pink-50 transition flex items-center justify-center text-xl transform hover:translate-x-1">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <button id="btn-open-frame-select" class="flex items-center gap-2 bg-white px-5 py-2 rounded-full shadow-sm text-gray-700 text-sm font-bold border border-gray-200 hover:bg-gray-50 transition transform hover:scale-105 active:scale-95 w-full justify-center">
+                <i class="fa-solid fa-image text-pink-500"></i> 目前邊框：<span id="current-frame-name" class="text-pink-600 truncate max-w-[150px]">載入中...</span>
+                <i class="fa-solid fa-list-ul text-gray-400 ml-1"></i>
+            </button>
+        </div>
+
+        <button id="btn-go-admin" class="absolute top-4 right-4 bg-white/90 backdrop-blur shadow-md px-4 py-2 rounded-full text-gray-700 hover:text-pink-600 transition text-sm font-bold z-50 border border-gray-100">
+            <i class="fa-solid fa-gear text-pink-500"></i>
+        </button>
+    </div>
+
+    <!-- 拍攝結果與下載視圖 -->
+    <div id="view-result" class="flex-1 flex flex-col items-center justify-center p-4 relative hidden">
+        <div class="glass-panel bg-white/90 p-6 md:p-10 lg:p-12 rounded-3xl shadow-2xl max-w-2xl lg:max-w-4xl xl:max-w-5xl w-full flex flex-col md:flex-row gap-8 items-center border border-white">
+            <div class="w-full md:w-1/2 flex flex-col items-center">
+                <img id="result-image" class="w-full aspect-square object-cover rounded-2xl shadow-md border-4 border-white" src="" alt="拍攝結果">
+            </div>
+            
+            <div class="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
+                <h2 class="text-3xl md:text-4xl font-black text-gray-800 mb-2">拍攝完成！✨</h2>
+                <p class="text-gray-600 md:text-lg mb-6 font-medium">掃描下方 QRCode 或點擊按鈕儲存這份美好回憶。</p>
+                
+                <div class="bg-gray-50 p-4 rounded-xl shadow-inner mb-6 inline-block border border-gray-200">
+                    <div id="qrcode"></div>
+                </div>
+
+                <div class="flex gap-4 w-full justify-center md:justify-start">
+                    <button id="btn-retake" class="px-6 py-3 md:px-8 md:py-4 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-bold md:text-lg hover:bg-gray-50 transition shadow-sm w-1/2 md:w-auto">
+                        <i class="fa-solid fa-arrow-rotate-left mr-2"></i> 重拍
+                    </button>
+                    <button id="btn-download" class="px-6 py-3 md:px-8 md:py-4 bg-pink-500 text-white rounded-full font-bold md:text-lg hover:bg-pink-600 transition shadow-md w-1/2 md:w-auto">
+                        <i class="fa-solid fa-download mr-2"></i> 下載照片
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 單純瀏覽照片視圖 -->
+    <div id="view-shared" class="flex-1 flex flex-col items-center justify-center p-4 bg-gray-900/90 hidden">
+        <div class="max-w-md w-full flex flex-col items-center gap-6 bg-white p-6 rounded-3xl shadow-2xl">
+            <h1 class="text-gray-800 text-2xl font-black tracking-widest text-center">✨ 回憶珍藏 ✨</h1>
+            <div id="shared-loading" class="text-gray-500"><i class="fa-solid fa-spinner fa-spin text-3xl"></i></div>
+            <img id="shared-image" class="w-full aspect-square object-cover rounded-2xl shadow-md border-4 border-gray-100 hidden" src="" alt="Shared Photo">
+            <button id="btn-shared-download" class="hidden w-full py-4 bg-pink-500 text-white rounded-full font-bold text-lg hover:bg-pink-600 transition shadow-md mt-2">
+                <i class="fa-solid fa-download mr-2"></i> 儲存照片至手機
+            </button>
+            <a href="?" class="text-pink-500 hover:text-pink-600 font-bold underline mt-2">我也想拍一張！</a>
+        </div>
+    </div>
+
+    <!-- 邊框選擇選單視窗 -->
+    <div id="modal-frame-select" class="fixed inset-0 bg-gray-900/40 z-50 flex items-end sm:items-center justify-center hidden backdrop-blur-sm p-4 pb-0 sm:pb-4 transition-opacity">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl p-6 md:p-8 w-full max-w-md sm:max-w-2xl lg:max-w-4xl shadow-2xl relative max-h-[60vh] sm:max-h-[80vh] flex flex-col border border-gray-100">
+            <div class="flex justify-between items-center mb-4 md:mb-6 border-b pb-3 md:pb-4">
+                <h2 class="text-xl md:text-3xl font-black text-gray-800"><i class="fa-solid fa-border-all text-pink-500 mr-2"></i>選擇邊框</h2>
+                <button id="btn-close-frame-select" class="text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="frame-select-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4 overflow-y-auto custom-scrollbar pb-6 pr-2">
+                <!-- 縮圖將由 JS 動態生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理員登入視窗 -->
+    <div id="modal-admin-login" class="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center hidden backdrop-blur-md p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative border border-gray-100">
+            <button id="btn-close-login" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 id="login-title" class="text-2xl font-black text-center text-gray-800 mb-6 flex justify-center items-center gap-2"><i class="fa-solid fa-shield-halved text-pink-500"></i> 管理登入</h2>
+            
+            <form id="form-login" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">帳號</label>
+                    <input type="text" id="login-username" placeholder="預設: admin" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">密碼</label>
+                    <input type="password" id="login-password" placeholder="預設: admin123" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
+                </div>
+                <button type="submit" id="btn-submit-login" class="w-full bg-gray-800 text-white py-3 rounded-xl font-bold hover:bg-gray-900 transition mt-2 shadow-md">
+                    安全登入
+                </button>
+            </form>
+            <p id="login-error" class="text-red-500 text-xs text-center mt-3 hidden bg-red-50 p-2 rounded-lg"></p>
+        </div>
+    </div>
+
+    <!-- 管理員控制台 -->
+    <div id="view-admin-dashboard" class="flex-1 flex flex-col bg-[#f8f9fa]/95 backdrop-blur-md hidden h-screen overflow-hidden">
+        <!-- 頂部導航 -->
+        <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 border-b border-gray-200">
+            <h1 class="text-xl md:text-2xl font-black text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-gear text-gray-400"></i>
+                <span class="dynamic-site-title text-pink-600">智能拍貼機</span> 後台
+            </h1>
+            <div class="flex gap-4 items-center">
+                <span id="admin-user-display" class="text-sm font-bold text-gray-600 hidden md:block bg-gray-100 px-3 py-1 rounded-full"></span>
+                <button id="btn-admin-home" class="text-gray-500 hover:text-pink-500 px-3 py-1 font-bold transition"><i class="fa-solid fa-house mr-1"></i> 回前台</button>
+                <button id="btn-logout" class="bg-gray-800 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-gray-900 shadow-sm transition">登出</button>
+            </div>
+        </header>
+
+        <!-- 內容區 -->
+        <div class="flex-1 overflow-auto p-6 custom-scrollbar">
+            <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- 照片管理區 -->
+                <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm p-6 border border-gray-100 flex flex-col h-fit">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3">
+                        <h2 class="text-xl font-black text-gray-800"><i class="fa-solid fa-images text-pink-500 mr-2"></i>雲端照片庫</h2>
+                        <div class="flex gap-2">
+                            <button id="btn-select-all" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold transition">本頁全選</button>
+                            <button id="btn-batch-delete" class="text-sm bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-bold transition hidden border border-red-200"><i class="fa-solid fa-trash mr-1"></i>刪除 (<span id="batch-delete-count">0</span>)</button>
+                        </div>
+                    </div>
+                    <!-- 照片列表 -->
+                    <div id="admin-photos-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 content-start p-1 mb-2 w-full h-auto">
+                        <div class="col-span-full text-center text-gray-400 py-10"><i class="fa-solid fa-spinner fa-spin"></i> 載入中...</div>
+                    </div>
+                    <!-- 分頁按鈕容器 -->
+                    <div id="admin-photos-pagination" class="mt-2 border-t border-gray-50 pt-2"></div>
+                </div>
+
+                <!-- 右側選單區 -->
+                <div class="flex flex-col gap-6 h-fit">
+                    
+                    <!-- ⭐ 新增：外觀設定區 (僅管理員可見) -->
+                    <div id="section-site-settings" class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100 flex flex-col h-fit hidden">
+                        <h2 class="text-xl font-black text-gray-800 mb-4 border-b pb-3"><i class="fa-solid fa-palette text-pink-500 mr-2"></i>外觀設定</h2>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-bold text-gray-600">網站標題</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="admin-input-title" class="flex-1 px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50 font-bold" placeholder="輸入自訂標題">
+                                <button id="btn-save-title" class="bg-gray-800 text-white px-4 py-2 rounded-xl font-bold hover:bg-gray-900 transition shadow-sm whitespace-nowrap">儲存</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 邊框管理區 -->
+                    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100 flex flex-col h-fit">
+                        <h2 class="text-xl font-black text-gray-800 mb-4 border-b pb-3"><i class="fa-regular fa-object-group text-pink-500 mr-2"></i>邊框管理</h2>
+                        
+                        <form id="form-add-frame" class="mb-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <h3 class="text-sm font-bold text-gray-700 mb-2">新增邊框 (圖片網址)</h3>
+                            <input type="text" id="new-frame-name" placeholder="邊框名稱 (選填)" class="w-full text-sm px-3 py-2 border rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-pink-300">
+                            <textarea id="new-frame-url" required placeholder="輸入圖片 URL 或 Base64" class="w-full text-sm px-3 py-2 border rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-pink-300 h-16 resize-none custom-scrollbar"></textarea>
+                            <p class="text-xs text-gray-500 mb-3 font-medium"><i class="fa-solid fa-circle-info"></i> 建議使用透明 PNG 或 Base64</p>
+                            <button type="submit" class="w-full bg-pink-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-pink-600 transition shadow-sm">上傳邊框</button>
+                        </form>
+
+                        <div class="overflow-y-auto custom-scrollbar h-[275px] pr-2">
+                            <ul id="admin-frames-list" class="flex flex-col gap-2">
+                                <li class="text-center text-gray-400 py-4"><i class="fa-solid fa-spinner fa-spin"></i> 載入中...</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 系統帳號設定區 -->
+                    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100 flex flex-col h-fit">
+                        <h2 class="text-xl font-black text-gray-800 mb-4 border-b pb-3"><i class="fa-solid fa-users-gear text-pink-500 mr-2"></i>帳號設定</h2>
+                        <div class="flex flex-col gap-3">
+                            <button id="btn-open-password-modal" class="w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 py-3 rounded-xl text-sm font-bold transition">
+                                <i class="fa-solid fa-key text-gray-400"></i> 修改密碼
+                            </button>
+                            <button id="btn-open-collab-modal" class="w-full flex items-center justify-center gap-2 bg-pink-50 hover:bg-pink-100 border border-pink-100 text-pink-600 py-3 rounded-xl text-sm font-bold transition hidden">
+                                <i class="fa-solid fa-user-plus"></i> 新增協作者
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密碼視窗 -->
+    <div id="modal-change-password" class="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center hidden backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative border border-gray-100">
+            <button id="btn-close-password-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center"><i class="fa-solid fa-key text-pink-500 mr-2"></i>修改密碼</h2>
+            <form id="form-change-password" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">新密碼</label>
+                    <input type="password" id="new-password" required placeholder="輸入新密碼 (至少6碼)" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50">
+                </div>
+                <button type="submit" class="w-full bg-pink-500 text-white py-3 rounded-xl text-base font-bold hover:bg-pink-600 transition mt-2 shadow-md">確認更新</button>
+            </form>
+            <p id="change-pwd-msg" class="text-sm text-center mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <!-- 新增協作者視窗 -->
+    <div id="modal-add-collaborator" class="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center hidden backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative border border-gray-100">
+            <button id="btn-close-collab-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center"><i class="fa-solid fa-user-plus text-pink-500 mr-2"></i>新增協作者</h2>
+            <form id="form-add-collaborator" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">協作者帳號</label>
+                    <input type="text" id="new-collab-username" required placeholder="例：user1" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">初始密碼</label>
+                    <input type="password" id="new-collab-password" required placeholder="設定密碼 (至少6碼)" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50">
+                </div>
+                <button type="submit" class="w-full bg-gray-800 text-white py-3 rounded-xl text-base font-bold hover:bg-gray-900 transition mt-2 shadow-md">建立帳號</button>
+            </form>
+            <p id="add-collab-msg" class="text-sm text-center mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        // ---------------------------------------------------------
+        // 1. Firebase 模組載入
+        // ---------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDoc, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // ==========================================
+        // 系統與狀態變數
+        // ==========================================
+        let db = null, auth = null, appId, currentUserId = null;
+        let unsubscribePhotos = null;
+        let unsubscribeFrames = null;
+        let currentMode = 'init'; 
+
+        // 分頁與批次刪除狀態
+        let allAdminPhotos = []; 
+        let currentPhotoPage = 1; 
+        const PHOTOS_PER_PAGE = 6; 
+        let selectedPhotos = new Set();
+
+        // 拍貼機與連拍狀態
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('output_canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const CANVAS_SIZE = 800; 
+        canvas.width = CANVAS_SIZE;
+        canvas.height = CANVAS_SIZE;
+
+        let frames = []; 
+        let currentFrameIndex = 0;
+        let currentFrameImage = new Image();
+        
+        let gestureRecognizer = null;
+        let isWebcamRunning = false;
+        let isCountingDown = false;
+        let animationFrameId = null;
+        let lastVideoTime = -1;
+
+        let shootMode = 1; 
+        let capturedShots = []; 
+        let isShootingSequence = false; 
+
+        // 動態標題變數
+        let currentSiteTitle = "智能拍貼機";
+
+        // ==========================================
+        // 初始化 Firebase
+        // ==========================================
+        let firebaseConfig = { apiKey: "dummy", projectId: "dummy", appId: "dummy" };
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e){}
+        }
+        appId = typeof __app_id !== 'undefined' ? __app_id : 'default-photo-booth';
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.warn("Firebase 初始化失敗，將以離線模式運行");
+        }
+
+        const GOOGLE_SCRIPT_URL = "請填入您的_Google_Apps_Script_網址";
+
+        // ==========================================
+        // 預設邊框
+        // ==========================================
+        const btoaUTF8 = (str) => btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+        const defaultFrame1 = `data:image/svg+xml;base64,` + btoaUTF8(`
+            <svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">
+                <rect x="20" y="20" width="760" height="760" fill="none" stroke="#ffffff" stroke-width="30" rx="15" />
+                <path d="M0,0 L150,0 L0,150 Z" fill="#ff69b4" opacity="0.8"/>
+                <path d="M800,0 L650,0 L800,150 Z" fill="#ffb6c1" opacity="0.8"/>
+                <path d="M0,800 L150,800 L0,650 Z" fill="#ffb6c1" opacity="0.8"/>
+                <path d="M800,800 L650,800 L800,650 Z" fill="#ff69b4" opacity="0.8"/>
+                <text x="400" y="750" font-family="sans-serif" font-size="40" fill="white" text-anchor="middle" font-weight="900" letter-spacing="5" style="text-shadow: 2px 2px 0px #ff69b4;">LOVE MOMENT</text>
+            </svg>
+        `);
+        const defaultFrame2 = `data:image/svg+xml;base64,` + btoaUTF8(`
+            <svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0" y="0" width="800" height="800" fill="none" stroke="#222" stroke-width="40" />
+                <rect x="30" y="30" width="740" height="740" fill="none" stroke="white" stroke-width="5" stroke-dasharray="20,10" />
+                <text x="400" y="760" font-family="monospace" font-size="30" fill="white" text-anchor="middle" font-weight="bold" background="black">/// FILM STRIP ///</text>
+            </svg>
+        `);
+        const defaultFrame3 = "https://raw.githubusercontent.com/您的帳號/專案名稱/main/可愛海兔去背版.png";
+
+        const DEFAULT_FRAMES = [
+            { id: 'def1', url: defaultFrame1, name: 'Love Moment', isDefault: true },
+            { id: 'def2', url: defaultFrame2, name: 'Film Strip', isDefault: true },
+            { id: 'def3', url: defaultFrame3, name: '可愛海兔', isDefault: true }
+        ];
+
+        // ==========================================
+        // 核心邏輯 - 路由與初始化
+        // ==========================================
+        async function initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewDocId = urlParams.get('view');
+
+            if (auth) {
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (err) {}
+                };
+                await initAuth();
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUserId = user ? user.uid : null;
+                    if (viewDocId) {
+                        setupSharedView(viewDocId);
+                    } else if (currentMode === 'init' || currentMode === 'booth') {
+                        setupBoothMode();
+                    } else if (currentMode === 'admin') {
+                        setupAdminDashboard();
+                    }
+                });
+
+                // ⭐ 監聽系統標題設定
+                if (db) {
+                    const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+                    onSnapshot(configRef, (docSnap) => {
+                        if(docSnap.exists() && docSnap.data().siteTitle) {
+                            currentSiteTitle = docSnap.data().siteTitle;
+                        } else {
+                            currentSiteTitle = "智能拍貼機";
+                        }
+                        // 更新畫面上所有標題
+                        document.querySelectorAll('.dynamic-site-title').forEach(el => el.innerText = currentSiteTitle);
+                        // 更新輸入框 (如果沒被 focus 的話)
+                        const inputTitle = document.getElementById('admin-input-title');
+                        if (inputTitle && document.activeElement !== inputTitle) {
+                            inputTitle.value = currentSiteTitle;
+                        }
+                    });
+                }
+            } else {
+                if (viewDocId) setupSharedView(viewDocId);
+                else setupBoothMode();
+            }
+
+            setTimeout(() => {
+                if (currentMode === 'init') {
+                    if (viewDocId) setupSharedView(viewDocId);
+                    else setupBoothMode();
+                }
+            }, 3000);
+        }
+
+        // ==========================================
+        // 儲存自訂標題邏輯
+        // ==========================================
+        document.getElementById('btn-save-title')?.addEventListener('click', async () => {
+            if (!db) return alert("未連接資料庫");
+            const newTitle = document.getElementById('admin-input-title').value.trim();
+            if (!newTitle) return;
+            
+            const btn = document.getElementById('btn-save-title');
+            btn.disabled = true;
+            btn.innerText = "儲存中...";
+            try {
+                // 將設定存入 settings/config
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), {
+                    siteTitle: newTitle
+                }, { merge: true });
+                btn.innerText = "✅ 已儲存";
+                setTimeout(() => { btn.innerText = "儲存"; btn.disabled = false; }, 1500);
+            } catch (err) {
+                alert('儲存失敗: ' + err.message);
+                btn.innerText = "儲存"; btn.disabled = false;
+            }
+        });
+
+        function switchView(viewId) {
+            const globalLoading = document.getElementById('global-loading');
+            if (globalLoading) globalLoading.classList.add('hidden');
+            
+            ['view-booth', 'view-result', 'view-shared', 'view-admin-dashboard', 'modal-admin-login'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            if (viewId) document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        async function setupSharedView(docId) {
+            currentMode = 'shared';
+            switchView('view-shared');
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', docId);
+                const docSnap = await getDoc(docRef);
+                
+                document.getElementById('shared-loading').classList.add('hidden');
+                const imgEl = document.getElementById('shared-image');
+                const btnDl = document.getElementById('btn-shared-download');
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    imgEl.src = data.imageUrl || data.imageData;
+                    imgEl.classList.remove('hidden');
+                    btnDl.classList.remove('hidden');
+                    btnDl.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = data.imageUrl || data.imageData;
+                        a.download = `photo-${Date.now()}.jpg`;
+                        a.click();
+                    };
+                } else {
+                    document.getElementById('shared-loading').innerHTML = "找不到該照片 😢<br><span class='text-sm mt-2 block'>可能已被刪除</span>";
+                    document.getElementById('shared-loading').classList.remove('hidden');
+                }
+            } catch (err) {}
+        }
+
+        async function setupBoothMode() {
+            currentMode = 'booth';
+            switchView('view-booth');
+            
+            if (db && !unsubscribeFrames) {
+                try {
+                    const framesRef = collection(db, 'artifacts', appId, 'public', 'data', 'frames');
+                    unsubscribeFrames = onSnapshot(framesRef, (snapshot) => {
+                        frames = [...DEFAULT_FRAMES];
+                        snapshot.forEach(doc => frames.push({ id: doc.id, ...doc.data(), isDefault: false }));
+                        if (currentFrameIndex >= frames.length) currentFrameIndex = 0;
+                        updateFrameImage();
+                    }, (err) => {
+                        frames = [...DEFAULT_FRAMES];
+                        updateFrameImage();
+                    });
+                } catch (e) {
+                    frames = [...DEFAULT_FRAMES];
+                    updateFrameImage();
+                }
+            } else if (!db) {
+                frames = [...DEFAULT_FRAMES];
+                updateFrameImage();
+            }
+
+            await initMediaPipe();
+            
+            if (isWebcamRunning) {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(renderLoop);
+            } else {
+                await startWebcam();
+            }
+        }
+
+        function updateFrameImage() {
+            if (frames.length > 0) {
+                if (!frames[currentFrameIndex].url.startsWith('data:')) {
+                    currentFrameImage.crossOrigin = "anonymous"; 
+                } else {
+                    currentFrameImage.removeAttribute('crossOrigin');
+                }
+                currentFrameImage.src = frames[currentFrameIndex].url;
+                const nameEl = document.getElementById('current-frame-name');
+                if(nameEl) nameEl.innerText = frames[currentFrameIndex].name || `自訂邊框 ${currentFrameIndex + 1}`;
+            } else {
+                currentFrameImage.src = "";
+                const nameEl = document.getElementById('current-frame-name');
+                if(nameEl) nameEl.innerText = "無邊框";
+            }
+        }
+
+        async function initMediaPipe() {
+            if (gestureRecognizer) return; 
+            try {
+                const { GestureRecognizer, FilesetResolver } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs");
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+                );
+                gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO"
+                });
+                document.getElementById('gesture-hint').classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('loading-text').innerText = "手勢辨識載入失敗，請使用按鈕拍照";
+            }
+        }
+
+        async function startWebcam() {
+            if (isWebcamRunning) return;
+            try {
+                const constraints = { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                video.addEventListener('loadeddata', () => {
+                    document.getElementById('loading-state').classList.add('hidden');
+                    isWebcamRunning = true;
+                    requestAnimationFrame(renderLoop);
+                });
+            } catch (err) {
+                document.getElementById('loading-text').innerText = "無法存取相機，請確認權限";
+            }
+        }
+
+        function renderLoop() {
+            if (!isWebcamRunning || currentMode !== 'booth') return;
+
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const size = Math.min(video.videoWidth, video.videoHeight);
+                const startX = (video.videoWidth - size) / 2;
+                const startY = (video.videoHeight - size) / 2;
+                
+                ctx.save();
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, startX, startY, size, size, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
+
+                if (currentFrameImage.complete && currentFrameImage.naturalWidth > 0) {
+                    try {
+                        ctx.drawImage(currentFrameImage, 0, 0, canvas.width, canvas.height);
+                    } catch (e) {}
+                }
+            }
+
+            let nowInMs = Date.now();
+            if (video.currentTime !== lastVideoTime && gestureRecognizer && !isCountingDown && !isShootingSequence) {
+                lastVideoTime = video.currentTime;
+                const results = gestureRecognizer.recognizeForVideo(video, nowInMs);
+                
+                if (results.gestures.length > 0) {
+                    const categoryName = results.gestures[0][0].categoryName;
+                    if (categoryName === "Open_Palm") {
+                        startCountdown();
+                    }
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(renderLoop);
+        }
+
+        // ==========================================
+        // 拍照與連拍邏輯
+        // ==========================================
+        async function startCountdown(currentShotIndex = 1) {
+            if (isCountingDown) return;
+            isCountingDown = true;
+            
+            if (currentShotIndex === 1) {
+                isShootingSequence = true;
+                capturedShots = []; 
+            }
+            
+            document.getElementById('gesture-hint').classList.add('hidden');
+            const cdText = document.getElementById('countdown-text');
+            cdText.classList.remove('opacity-0');
+            
+            const indicatorHtml = shootMode === 4 ? `<div class="text-3xl md:text-4xl mt-4 bg-black/50 px-5 py-2 rounded-full drop-shadow-md">第 ${currentShotIndex} / 4 張</div>` : '';
+            
+            for (let i = 3; i > 0; i--) {
+                cdText.innerHTML = `<div class="flex flex-col items-center justify-center">${i}${indicatorHtml}</div>`;
+                cdText.style.transform = 'scale(0.5)';
+                setTimeout(() => cdText.style.transform = 'scale(1.5)', 50);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+            
+            cdText.innerHTML = "";
+            cdText.classList.add('opacity-0');
+            takePhoto(currentShotIndex);
+        }
+
+        async function takePhoto(currentShotIndex) {
+            const flash = document.getElementById('flash-overlay');
+            flash.style.opacity = '1';
+            setTimeout(() => flash.style.opacity = '0', 150);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            capturedShots.push(imageData);
+            isCountingDown = false; 
+            
+            if (shootMode === 1 || capturedShots.length === 4) {
+                processFinalPhoto();
+            } else {
+                await new Promise(r => setTimeout(r, 1000));
+                startCountdown(currentShotIndex + 1);
+            }
+        }
+
+        async function processFinalPhoto() {
+            let finalImageData = capturedShots[0];
+
+            if (shootMode === 4) {
+                document.getElementById('loading-state').classList.remove('hidden');
+                document.getElementById('loading-text').innerText = "四格拼圖處理中...";
+                await new Promise(r => setTimeout(r, 50)); 
+
+                const compCanvas = document.createElement('canvas');
+                compCanvas.width = CANVAS_SIZE * 2;
+                compCanvas.height = CANVAS_SIZE * 2;
+                const compCtx = compCanvas.getContext('2d');
+                
+                compCtx.fillStyle = 'white';
+                compCtx.fillRect(0, 0, compCanvas.width, compCanvas.height);
+
+                for (let i = 0; i < 4; i++) {
+                    const img = new Image();
+                    img.src = capturedShots[i];
+                    await new Promise(r => img.onload = r);
+                    const x = (i % 2) * CANVAS_SIZE;
+                    const y = Math.floor(i / 2) * CANVAS_SIZE;
+                    compCtx.drawImage(img, x, y, CANVAS_SIZE, CANVAS_SIZE);
+                    
+                    compCtx.strokeStyle = 'white';
+                    compCtx.lineWidth = 10;
+                    compCtx.strokeRect(x, y, CANVAS_SIZE, CANVAS_SIZE);
+                }
+                finalImageData = compCanvas.toDataURL('image/jpeg', 0.8);
+                
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('loading-text').innerText = "正在初始化相機與 AI...";
+            }
+
+            isShootingSequence = false;
+            capturedShots = []; 
+            showResultView(finalImageData);
+            uploadAndSavePhoto(finalImageData);
+        }
+
+        async function uploadAndSavePhoto(imageData) {
+            if (db && auth && currentUserId) {
+                try {
+                    let finalImageUrl = imageData;
+                    let driveFileId = "";
+
+                    if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL.startsWith("https://script.google.com/")) {
+                        const res = await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                            body: JSON.stringify({
+                                action: 'upload',
+                                filename: `photobooth_${Date.now()}.jpg`,
+                                image: imageData
+                            })
+                        });
+                        const result = await res.json();
+                        if (result.success) {
+                            finalImageUrl = result.url;
+                            driveFileId = result.fileId;
+                        }
+                    }
+
+                    const photosRef = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+                    const docRef = await addDoc(photosRef, {
+                        imageUrl: finalImageUrl, 
+                        driveFileId: driveFileId, 
+                        timestamp: Date.now(),
+                        userId: currentUserId
+                    });
+                    
+                    const shareUrl = window.location.origin + window.location.pathname + '?view=' + docRef.id;
+                    generateQRCode(shareUrl);
+                } catch (err) {
+                    generateQRCode(window.location.href); 
+                }
+            } else {
+                generateQRCode(window.location.href);
+            }
+        }
+
+        function showResultView(imageData) {
+            currentMode = 'result';
+            switchView('view-result');
+            document.getElementById('result-image').src = imageData;
+            document.getElementById('qrcode').innerHTML = ""; 
+            
+            document.getElementById('btn-download').onclick = () => {
+                const a = document.createElement('a');
+                a.href = imageData;
+                a.download = `photobooth-${Date.now()}.jpg`;
+                a.click();
+            };
+        }
+
+        function generateQRCode(url) {
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById('qrcode'), {
+                text: url,
+                width: 150,
+                height: 150,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.L
+            });
+        }
+
+        // ==========================================
+        // UI 事件與按鈕綁定 (主畫面)
+        // ==========================================
+        const classModeActive = "flex-1 py-2 rounded-full text-sm font-bold transition shadow-md bg-pink-500 text-white border-2 border-pink-500";
+        const classModeInactive = "flex-1 py-2 rounded-full text-sm font-bold transition shadow-sm bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200";
+
+        document.getElementById('btn-mode-1').addEventListener('click', () => {
+            if (isShootingSequence) return;
+            shootMode = 1;
+            document.getElementById('btn-mode-1').className = classModeActive;
+            document.getElementById('btn-mode-4').className = classModeInactive;
+        });
+
+        document.getElementById('btn-mode-4').addEventListener('click', () => {
+            if (isShootingSequence) return;
+            shootMode = 4;
+            document.getElementById('btn-mode-4').className = classModeActive;
+            document.getElementById('btn-mode-1').className = classModeInactive;
+        });
+
+        document.getElementById('btn-prev-frame').addEventListener('click', () => {
+            if (frames.length === 0) return;
+            currentFrameIndex = (currentFrameIndex - 1 + frames.length) % frames.length;
+            updateFrameImage();
+        });
+
+        document.getElementById('btn-next-frame').addEventListener('click', () => {
+            if (frames.length === 0) return;
+            currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+            updateFrameImage();
+        });
+
+        document.getElementById('btn-take-photo').addEventListener('click', () => {
+            if (!isCountingDown && !isShootingSequence) startCountdown();
+        });
+
+        document.getElementById('btn-retake').addEventListener('click', () => {
+            setupBoothMode();
+            document.getElementById('gesture-hint').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-open-frame-select').addEventListener('click', () => {
+            const grid = document.getElementById('frame-select-grid');
+            grid.innerHTML = '';
+            
+            frames.forEach((f, idx) => {
+                const div = document.createElement('div');
+                const isSelected = idx === currentFrameIndex;
+                
+                div.className = `cursor-pointer rounded-2xl overflow-hidden border-4 checkerboard relative aspect-square transition transform hover:scale-105 ${isSelected ? 'border-pink-500 shadow-md ring-2 ring-pink-200' : 'border-gray-100 hover:border-pink-300'}`;
+                div.innerHTML = `
+                    <img class="popup-frame-img w-full h-full object-contain absolute inset-0 z-10 drop-shadow-sm">
+                    <div class="error-overlay hidden absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center text-red-500 text-xs font-bold"><i class="fa-solid fa-triangle-exclamation mb-1 text-lg"></i>圖片失效</div>
+                    ${isSelected ? '<div class="absolute inset-0 bg-pink-500/20 z-30 flex items-center justify-center"><i class="fa-solid fa-check text-white text-3xl drop-shadow-md"></i></div>' : ''}
+                `;
+                
+                const imgEl = div.querySelector('.popup-frame-img');
+                const errOverlay = div.querySelector('.error-overlay');
+                
+                if (!f.url.startsWith('data:')) imgEl.crossOrigin = "anonymous";
+                imgEl.referrerPolicy = "no-referrer";
+                imgEl.onerror = () => { imgEl.style.display = 'none'; errOverlay.classList.remove('hidden'); };
+                imgEl.src = f.url; 
+                
+                div.onclick = () => {
+                    if (!errOverlay.classList.contains('hidden')) return; 
+                    currentFrameIndex = idx;
+                    updateFrameImage();
+                    document.getElementById('modal-frame-select').classList.add('hidden');
+                };
+                grid.appendChild(div);
+            });
+            document.getElementById('modal-frame-select').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-close-frame-select').addEventListener('click', () => {
+            document.getElementById('modal-frame-select').classList.add('hidden');
+        });
+
+        const getFakeEmail = (username) => `${username.trim().toLowerCase()}@photobooth.local`;
+
+        document.getElementById('btn-go-admin').addEventListener('click', () => {
+            if (auth && auth.currentUser && auth.currentUser.email) {
+                setupAdminDashboard();
+            } else {
+                document.getElementById('modal-admin-login').classList.remove('hidden');
+                document.getElementById('view-booth').classList.add('hidden'); 
+            }
+        });
+
+        document.getElementById('btn-close-login').addEventListener('click', () => {
+            document.getElementById('modal-admin-login').classList.add('hidden');
+            setupBoothMode();
+        });
+
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const pwd = document.getElementById('login-password').value;
+            const email = getFakeEmail(username);
+            const errorEl = document.getElementById('login-error');
+            errorEl.classList.add('hidden');
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pwd);
+                setupAdminDashboard();
+            } catch (err) {
+                if (username === 'admin' && pwd === 'admin123') {
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, pwd);
+                        setupAdminDashboard();
+                        return;
+                    } catch (createErr) {
+                        if (createErr.code === 'auth/operation-not-allowed') {
+                            errorEl.innerHTML = "系統設定未完成：<br>請至 Firebase 後台啟用「電子郵件/密碼」登入方式！";
+                        } else if (createErr.code === 'auth/email-already-in-use') {
+                            errorEl.innerHTML = "密碼錯誤！此帳號已存在。<br><span class='text-gray-500 font-normal'>請使用您修改後的新密碼登入。</span>";
+                        } else {
+                            errorEl.innerText = "帳號建立失敗：" + createErr.message;
+                        }
+                        errorEl.classList.remove('hidden');
+                        return;
+                    }
+                }
+                errorEl.innerText = "登入失敗：帳號或密碼錯誤。";
+                errorEl.classList.remove('hidden');
+            }
+        });
+
+        // ==========================================
+        // 後台管理邏輯
+        // ==========================================
+        async function setupAdminDashboard() {
+            currentMode = 'admin';
+            switchView('view-admin-dashboard');
+
+            if (!currentUserId || !auth.currentUser) return; 
+
+            const email = auth.currentUser.email || '';
+            const username = email.split('@')[0];
+            const isAdmin = username === 'admin';
+            
+            const userDisplay = document.getElementById('admin-user-display');
+            if (userDisplay) {
+                userDisplay.innerText = `${isAdmin ? '👑 管理者' : '👤 協作者'}：${username}`;
+            }
+
+            // ⭐ 權限控管：顯示/隱藏外觀設定與新增協作者
+            const btnCollabModal = document.getElementById('btn-open-collab-modal');
+            const sectionSettings = document.getElementById('section-site-settings');
+            
+            if (isAdmin) {
+                if (btnCollabModal) { btnCollabModal.classList.remove('hidden'); btnCollabModal.classList.add('flex'); }
+                if (sectionSettings) { sectionSettings.classList.remove('hidden'); sectionSettings.classList.add('flex'); }
+            } else {
+                if (btnCollabModal) { btnCollabModal.classList.add('hidden'); btnCollabModal.classList.remove('flex'); }
+                if (sectionSettings) { sectionSettings.classList.add('hidden'); sectionSettings.classList.remove('flex'); }
+            }
+
+            if(db) {
+                const photosRef = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+                if(unsubscribePhotos) unsubscribePhotos();
+                
+                unsubscribePhotos = onSnapshot(photosRef, (snapshot) => {
+                    allAdminPhotos = [];
+                    snapshot.forEach(doc => allAdminPhotos.push({ id: doc.id, ...doc.data() }));
+                    allAdminPhotos.sort((a, b) => b.timestamp - a.timestamp);
+                    renderAdminPhotos();
+                });
+
+                const framesRef = collection(db, 'artifacts', appId, 'public', 'data', 'frames');
+                onSnapshot(framesRef, (snapshot) => {
+                    let localFrames = [...DEFAULT_FRAMES];
+                    snapshot.forEach(doc => localFrames.push({ id: doc.id, ...doc.data(), isDefault: false }));
+                    renderAdminFrames(localFrames);
+                });
+            }
+        }
+
+        // 渲染相片 (包含核取方塊與分頁)
+        function renderAdminPhotos() {
+            const grid = document.getElementById('admin-photos-grid');
+            const paginationContainer = document.getElementById('admin-photos-pagination');
+            grid.innerHTML = '';
+            
+            if (allAdminPhotos.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center text-gray-400 py-10">尚無照片記錄</div>';
+                if(paginationContainer) paginationContainer.innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(allAdminPhotos.length / PHOTOS_PER_PAGE);
+            if (currentPhotoPage > totalPages) currentPhotoPage = totalPages;
+            if (currentPhotoPage < 1) currentPhotoPage = 1;
+
+            const startIndex = (currentPhotoPage - 1) * PHOTOS_PER_PAGE;
+            const endIndex = startIndex + PHOTOS_PER_PAGE;
+            const currentPhotos = allAdminPhotos.slice(startIndex, endIndex);
+
+            currentPhotos.forEach(photo => {
+                const dateStr = new Date(photo.timestamp).toLocaleString('zh-TW', { hour12: false });
+                const src = photo.imageUrl || photo.imageData; 
+                const div = document.createElement('div');
+                
+                const isSelected = selectedPhotos.has(photo.id);
+                div.className = `relative group rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-fit transition-all duration-200 ${isSelected ? 'ring-4 ring-pink-500 scale-[0.98]' : ''}`;
+                
+                div.innerHTML = `
+                    <img class="admin-photo-img w-full aspect-square object-cover" loading="lazy">
+                    <div class="absolute top-3 left-3 z-20">
+                        <input type="checkbox" class="photo-checkbox w-6 h-6 accent-pink-500 rounded cursor-pointer drop-shadow-md border-2 border-white shadow-sm" data-id="${photo.id}" ${isSelected ? 'checked' : ''}>
+                    </div>
+                    <div class="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-2 pointer-events-none backdrop-blur-sm">
+                        <span class="text-white text-xs px-2 text-center">${dateStr}</span>
+                        <button class="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-red-600 shadow-md btn-del-photo pointer-events-auto" data-id="${photo.id}" data-drive-id="${photo.driveFileId || ''}">
+                            <i class="fa-solid fa-trash"></i> 刪除
+                        </button>
+                    </div>
+                `;
+                
+                const imgEl = div.querySelector('.admin-photo-img');
+                imgEl.referrerPolicy = "no-referrer";
+                imgEl.src = src; 
+
+                const checkbox = div.querySelector('.photo-checkbox');
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        selectedPhotos.add(photo.id);
+                        div.classList.add('ring-4', 'ring-pink-500', 'scale-[0.98]');
+                    } else {
+                        selectedPhotos.delete(photo.id);
+                        div.classList.remove('ring-4', 'ring-pink-500', 'scale-[0.98]');
+                    }
+                    updateBatchDeleteUI();
+                });
+                
+                grid.appendChild(div);
+            });
+
+            document.querySelectorAll('.btn-del-photo').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if(!confirm('確定要刪除這張照片嗎？')) return;
+                    const btnEl = e.target.closest('button');
+                    const id = btnEl.dataset.id;
+                    const driveFileId = btnEl.dataset.driveId;
+                    
+                    try {
+                        if (driveFileId && typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL.startsWith("https://script.google.com/")) {
+                            await fetch(GOOGLE_SCRIPT_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify({ action: 'delete', fileId: driveFileId })
+                            }).catch(err => {});
+                        }
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'photos', id));
+                        selectedPhotos.delete(id);
+                        updateBatchDeleteUI();
+                    } catch (err) {}
+                });
+            });
+
+            renderPaginationControls(totalPages);
+        }
+
+        // 分頁按鈕渲染
+        function renderPaginationControls(totalPages) {
+            const container = document.getElementById('admin-photos-pagination');
+            if (!container) return;
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+            container.innerHTML = `
+                <div class="flex justify-center items-center gap-4 pt-2 w-full">
+                    <button id="btn-page-prev" class="px-4 py-2 rounded-full text-sm font-bold transition ${currentPhotoPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-pink-50 text-pink-600 hover:bg-pink-100 shadow-sm border border-pink-100'}" ${currentPhotoPage === 1 ? 'disabled' : ''}>
+                        <i class="fa-solid fa-chevron-left mr-1"></i> 上一頁
+                    </button>
+                    <span class="text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">第 ${currentPhotoPage} / ${totalPages} 頁</span>
+                    <button id="btn-page-next" class="px-4 py-2 rounded-full text-sm font-bold transition ${currentPhotoPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-pink-50 text-pink-600 hover:bg-pink-100 shadow-sm border border-pink-100'}" ${currentPhotoPage === totalPages ? 'disabled' : ''}>
+                        下一頁 <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('btn-page-prev')?.addEventListener('click', () => {
+                if (currentPhotoPage > 1) { currentPhotoPage--; renderAdminPhotos(); }
+            });
+            document.getElementById('btn-page-next')?.addEventListener('click', () => {
+                if (currentPhotoPage < totalPages) { currentPhotoPage++; renderAdminPhotos(); }
+            });
+        }
+
+        // ==========================================
+        // 批次刪除邏輯
+        // ==========================================
+        function updateBatchDeleteUI() {
+            const btnBatchDelete = document.getElementById('btn-batch-delete');
+            const countSpan = document.getElementById('batch-delete-count');
+            if (!btnBatchDelete || !countSpan) return;
+
+            if (selectedPhotos.size > 0) {
+                btnBatchDelete.classList.remove('hidden');
+                countSpan.innerText = selectedPhotos.size;
+            } else {
+                btnBatchDelete.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('btn-select-all')?.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.photo-checkbox');
+            const allCheckedOnPage = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                const photoId = cb.dataset.id;
+                if (allCheckedOnPage) {
+                    cb.checked = false;
+                    selectedPhotos.delete(photoId);
+                    cb.closest('div.group').classList.remove('ring-4', 'ring-pink-500', 'scale-[0.98]');
+                } else {
+                    cb.checked = true;
+                    selectedPhotos.add(photoId);
+                    cb.closest('div.group').classList.add('ring-4', 'ring-pink-500', 'scale-[0.98]');
+                }
+            });
+            updateBatchDeleteUI();
+        });
+
+        document.getElementById('btn-batch-delete')?.addEventListener('click', async () => {
+            if (selectedPhotos.size === 0) return;
+            if (!confirm(`確定要刪除選取的 ${selectedPhotos.size} 張照片嗎？\n(此操作無法復原！)`)) return;
+            
+            const btn = document.getElementById('btn-batch-delete');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>刪除中...';
+
+            try {
+                const photosToDelete = allAdminPhotos.filter(p => selectedPhotos.has(p.id));
+                const deletePromises = photosToDelete.map(async (photo) => {
+                    if (photo.driveFileId && typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL.startsWith("https://script.google.com/")) {
+                        fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({ action: 'delete', fileId: photo.driveFileId })
+                        }).catch(err => {});
+                    }
+                    return deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'photos', photo.id));
+                });
+
+                await Promise.all(deletePromises);
+                selectedPhotos.clear();
+                updateBatchDeleteUI();
+                
+            } catch (err) {
+                alert("批次刪除時發生錯誤");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-trash mr-1"></i>刪除 (<span id="batch-delete-count">${selectedPhotos.size}</span>)`;
+            }
+        });
+
+        // 渲染邊框列表
+        function renderAdminFrames(localFrames) {
+            const list = document.getElementById('admin-frames-list');
+            list.innerHTML = '';
+            
+            if (localFrames.length === 0) {
+                list.innerHTML = '<li class="text-center text-gray-400 py-4 text-sm">目前無邊框記錄。</li>';
+                return;
+            }
+
+            const currentUser = auth.currentUser;
+            const currentUid = currentUser ? currentUser.uid : null;
+            const username = currentUser ? currentUser.email.split('@')[0] : '';
+            const isAdmin = username === 'admin';
+
+            localFrames.forEach(frame => {
+                const li = document.createElement('li');
+                li.className = "flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-100 shadow-sm mr-1";
+                
+                const isUploader = frame.uploaderUid === currentUid;
+                const canDelete = !frame.isDefault && (isAdmin || isUploader);
+                
+                let actionHtml = '';
+                if (frame.isDefault) {
+                    actionHtml = `<span class="text-xs text-pink-600 bg-pink-50 px-2 py-1 rounded-md font-bold border border-pink-100 whitespace-nowrap">系統預設</span>`;
+                } else if (canDelete) {
+                    actionHtml = `<button class="text-red-400 hover:text-red-600 p-2 btn-del-frame bg-red-50 hover:bg-red-100 rounded-lg transition" data-id="${frame.id}"><i class="fa-solid fa-trash"></i></button>`;
+                } else {
+                    actionHtml = `<span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md border border-gray-200 whitespace-nowrap">來自: ${frame.uploaderName || '其他人'}</span>`;
+                }
+
+                li.innerHTML = `
+                    <div class="w-14 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative checkerboard flex items-center justify-center border border-gray-200">
+                        <i class="fa-solid fa-image-slash text-gray-300 absolute z-0 text-lg"></i>
+                        <img class="admin-frame-img w-full h-full object-contain absolute inset-0 z-10 bg-transparent">
+                    </div>
+                    <div class="flex-1 truncate text-sm font-bold text-gray-700">
+                        ${frame.name || '未命名邊框'}
+                        <span class="error-badge hidden text-[10px] text-red-500 ml-2 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">圖片失效</span>
+                    </div>
+                    ${actionHtml}
+                `;
+                
+                const imgEl = li.querySelector('.admin-frame-img');
+                const errBadge = li.querySelector('.error-badge');
+                if (frame.url && !frame.url.startsWith('data:')) imgEl.crossOrigin = "anonymous";
+                imgEl.referrerPolicy = "no-referrer";
+                imgEl.onerror = () => { imgEl.style.display = 'none'; errBadge.classList.remove('hidden'); };
+                imgEl.src = frame.url || ''; 
+                
+                list.appendChild(li);
+            });
+
+            document.querySelectorAll('.btn-del-frame').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.closest('button').dataset.id;
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'frames', id));
+                });
+            });
+        }
+
+        // 新增邊框
+        document.getElementById('form-add-frame').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('new-frame-name');
+            const urlInput = document.getElementById('new-frame-url');
+            const submitBtn = e.target.querySelector('button');
+            
+            const name = nameInput.value.trim();
+            const url = urlInput.value.trim().replace(/^['"]+/, '').replace(/['"]+$/, '');
+            if(!url) return;
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "驗證中...";
+
+            const testImg = new Image();
+            if (!url.startsWith('data:')) testImg.crossOrigin = "anonymous"; 
+            
+            testImg.onload = async () => {
+                submitBtn.innerText = "上傳中...";
+                try {
+                    const framesRef = collection(db, 'artifacts', appId, 'public', 'data', 'frames');
+                    const uploaderName = auth.currentUser ? auth.currentUser.email.split('@')[0] : 'unknown';
+                    await addDoc(framesRef, {
+                        name: name, url: url, timestamp: Date.now(),
+                        uploaderUid: auth.currentUser ? auth.currentUser.uid : null,
+                        uploaderName: uploaderName
+                    });
+                    nameInput.value = ''; urlInput.value = '';
+                } catch (err) {
+                    alert("新增邊框失敗！");
+                } finally {
+                    submitBtn.disabled = false; submitBtn.innerText = "上傳邊框";
+                }
+            };
+            testImg.onerror = () => {
+                alert("❌ 圖片載入失敗！\n可能是防盜鏈或網址無效。");
+                submitBtn.disabled = false; submitBtn.innerText = "上傳邊框";
+            };
+            testImg.src = url;
+        });
+
+        // ==========================================
+        // 系統設定：視窗開關與表單提交邏輯
+        // ==========================================
+        const modalPwd = document.getElementById('modal-change-password');
+        const modalCollab = document.getElementById('modal-add-collaborator');
+
+        document.getElementById('btn-open-password-modal')?.addEventListener('click', () => {
+            modalPwd.classList.remove('hidden'); document.getElementById('change-pwd-msg').classList.add('hidden');
+        });
+        document.getElementById('btn-close-password-modal')?.addEventListener('click', () => modalPwd.classList.add('hidden'));
+
+        document.getElementById('btn-open-collab-modal')?.addEventListener('click', () => {
+            modalCollab.classList.remove('hidden'); document.getElementById('add-collab-msg').classList.add('hidden');
+        });
+        document.getElementById('btn-close-collab-modal')?.addEventListener('click', () => modalCollab.classList.add('hidden'));
+
+        document.getElementById('form-change-password')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newPwd = document.getElementById('new-password').value;
+            const msgEl = document.getElementById('change-pwd-msg');
+            const btn = e.target.querySelector('button');
+            
+            msgEl.classList.add('hidden'); btn.disabled = true; btn.innerText = "更新中...";
+
+            try {
+                if (!auth.currentUser || auth.currentUser.isAnonymous) throw new Error("無效身分。");
+                await updatePassword(auth.currentUser, newPwd);
+                msgEl.innerText = "✅ 更新成功！";
+                msgEl.className = "text-sm text-center mt-4 text-green-600 font-bold bg-green-50 py-2 rounded-lg";
+                e.target.reset();
+                setTimeout(() => modalPwd.classList.add('hidden'), 1500);
+            } catch (err) {
+                msgEl.innerText = err.code === 'auth/requires-recent-login' ? "❌ 驗證過期，請重新登入。" : "❌ 失敗：" + err.message;
+                msgEl.className = "text-sm text-center mt-4 text-red-500 font-bold bg-red-50 py-2 rounded-lg";
+            } finally {
+                msgEl.classList.remove('hidden'); btn.disabled = false; btn.innerText = "確認更新";
+            }
+        });
+
+        document.getElementById('form-add-collaborator')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('new-collab-username').value;
+            const pwd = document.getElementById('new-collab-password').value;
+            const email = getFakeEmail(username);
+            const msgEl = document.getElementById('add-collab-msg');
+            const btn = e.target.querySelector('button');
+            
+            msgEl.classList.add('hidden'); btn.disabled = true; btn.innerText = "建立中...";
+
+            try {
+                const appName = "SecondaryApp_" + Date.now();
+                const secondaryApp = initializeApp(firebaseConfig, appName);
+                const secondaryAuth = getAuth(secondaryApp);
+                await createUserWithEmailAndPassword(secondaryAuth, email, pwd);
+                await signOut(secondaryAuth); 
+                msgEl.innerText = "✅ 建立成功！";
+                msgEl.className = "text-sm text-center mt-4 text-green-600 font-bold bg-green-50 py-2 rounded-lg";
+                e.target.reset();
+                setTimeout(() => modalCollab.classList.add('hidden'), 1500);
+            } catch (err) {
+                msgEl.innerText = "❌ 建立失敗：" + err.message;
+                msgEl.className = "text-sm text-center mt-4 text-red-500 font-bold bg-red-50 py-2 rounded-lg";
+            } finally {
+                msgEl.classList.remove('hidden'); btn.disabled = false; btn.innerText = "建立帳號";
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            if(auth) await signOut(auth);
+            if(auth) await signInAnonymously(auth);
+            setupBoothMode();
+        });
+
+        document.getElementById('btn-admin-home').addEventListener('click', () => {
+            setupBoothMode();
+        });
+
+        const style = document.createElement('style');
+        style.textContent = `
+            .checkerboard {
+                background-image: linear-gradient(45deg, #e5e7eb 25%, transparent 25%), linear-gradient(-45deg, #e5e7eb 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e7eb 75%), linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+                background-size: 10px 10px;
+                background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ==========================================
+        // 啟動入口
+        // ==========================================
+        window.addEventListener('load', initApp);
+    </script>
+</body>
+</html>
