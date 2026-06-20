@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能拍貼機</title>
+    <title>雲端智能拍貼機</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
@@ -60,8 +60,8 @@
         }, 3000);
     </script>
 </head>
-<!-- ⭐ 移除舊背景，改用清新的灰白底色 -->
-<body class="min-h-screen text-gray-800 flex flex-col overflow-x-hidden bg-[#f8f9fa]">
+<!-- ⭐ 修改：加上 relative 與 z-0 建立堆疊層級，避免背景 SVG 在預覽畫面中被吃掉隱藏 -->
+<body class="min-h-screen text-gray-800 flex flex-col overflow-x-hidden bg-[#f8f9fa] relative z-0">
 
     <!-- ⭐ 新增：可愛動物風格 SVG 背景層 -->
     <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
@@ -132,19 +132,20 @@
     <!-- 全局載入畫面 -->
     <div id="global-loading" class="flex-1 flex flex-col items-center justify-center absolute inset-0 z-50 bg-white/80 backdrop-blur-sm">
         <div class="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg mb-4 animate-bounce bg-white flex items-center justify-center">
-            <img src="logo.png" alt="Loading Logo" class="w-full h-full object-cover transform scale-[1.1] -translate-x-[8%] -translate-y-[4%]">
+            <img src="Gemini_Generated_Image_kpq5mkpq5mkpq5mk.png" alt="Loading Logo" class="w-full h-full object-cover transform scale-[1.5] -translate-x-[8%] -translate-y-[4%]">
         </div>
-        <p class="text-gray-800 font-bold tracking-widest text-lg">系統啟動中...</p>
+        <!-- ⭐ 套用可愛字體 -->
+        <p class="font-cute text-gray-800 font-bold tracking-widest text-lg md:text-xl">系統啟動中...</p>
     </div>
 
     <!-- 主視圖：拍貼機畫面 -->
     <div id="view-booth" class="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative hidden w-full overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-center mb-2 md:mb-4 bg-white/70 px-6 py-2 rounded-full backdrop-blur-sm shadow-sm">
             <div class="w-10 h-10 md:w-14 md:h-14 mr-3 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center shrink-0">
-                <img src="logo.png" alt="Logo" class="w-full h-full object-cover transform scale-[1.1] -translate-x-[8%] -translate-y-[4%]">
+                <img src="Gemini_Generated_Image_kpq5mkpq5mkpq5mk.png" alt="Logo" class="w-full h-full object-cover transform scale-[1.6] -translate-x-[8%] -translate-y-[4%]">
             </div>
-            <!-- ⭐ 套用動態標題 class -->
-            <h1 class="dynamic-site-title text-2xl md:text-3xl lg:text-4xl font-black text-gray-800 tracking-wider">智能拍貼機</h1>
+            <!-- ⭐ 套用動態標題 class 與可愛字型 -->
+            <h1 class="dynamic-site-title font-cute text-2xl md:text-3xl lg:text-4xl font-black text-gray-800 tracking-wider">智能拍貼機</h1>
         </div>
         
         <!-- 相機與畫布容器 -->
@@ -213,7 +214,8 @@
             </div>
             
             <div class="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
-                <h2 class="text-3xl md:text-4xl font-black text-gray-800 mb-2">拍攝完成！✨</h2>
+                <!-- ⭐ 套用可愛字型 -->
+                <h2 class="font-cute text-3xl md:text-4xl font-black text-gray-800 mb-2">拍攝完成！✨</h2>
                 <p class="text-gray-600 md:text-lg mb-6 font-medium">掃描下方 QRCode 或點擊按鈕儲存這份美好回憶。</p>
                 
                 <div class="bg-gray-50 p-4 rounded-xl shadow-inner mb-6 inline-block border border-gray-200">
@@ -235,7 +237,8 @@
     <!-- 單純瀏覽照片視圖 -->
     <div id="view-shared" class="flex-1 flex flex-col items-center justify-center p-4 bg-gray-900/90 hidden">
         <div class="max-w-md w-full flex flex-col items-center gap-6 bg-white p-6 rounded-3xl shadow-2xl">
-            <h1 class="text-gray-800 text-2xl font-black tracking-widest text-center">✨ 回憶珍藏 ✨</h1>
+            <!-- ⭐ 套用可愛字型 -->
+            <h1 class="font-cute text-gray-800 text-2xl font-black tracking-widest text-center">✨ 回憶珍藏 ✨</h1>
             <div id="shared-loading" class="text-gray-500"><i class="fa-solid fa-spinner fa-spin text-3xl"></i></div>
             <img id="shared-image" class="w-full aspect-square object-cover rounded-2xl shadow-md border-4 border-gray-100 hidden" src="" alt="Shared Photo">
             <button id="btn-shared-download" class="hidden w-full py-4 bg-pink-500 text-white rounded-full font-bold text-lg hover:bg-pink-600 transition shadow-md mt-2">
@@ -267,11 +270,11 @@
             <form id="form-login" class="flex flex-col gap-4">
                 <div>
                     <label class="block text-sm font-bold text-gray-600 mb-1">帳號</label>
-                    <input type="text" id="login-username" placeholder="" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
+                    <input type="text" id="login-username" placeholder="預設: admin" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-600 mb-1">密碼</label>
-                    <input type="password" id="login-password" placeholder=" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
+                    <input type="password" id="login-password" placeholder="預設: admin123" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
                 </div>
                 <button type="submit" id="btn-submit-login" class="w-full bg-gray-800 text-white py-3 rounded-xl font-bold hover:bg-gray-900 transition mt-2 shadow-md">
                     安全登入
@@ -285,9 +288,10 @@
     <div id="view-admin-dashboard" class="flex-1 flex flex-col bg-[#f8f9fa]/95 backdrop-blur-md hidden h-screen overflow-hidden">
         <!-- 頂部導航 -->
         <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 border-b border-gray-200">
-            <h1 class="text-xl md:text-2xl font-black text-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-gear text-gray-400"></i>
-                <span class="dynamic-site-title text-pink-600">智能拍貼機</span> 後台
+            <!-- ⭐ 套用可愛字型 -->
+            <h1 class="font-cute text-xl md:text-2xl font-black text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-gear text-gray-400 text-xl"></i>
+                <span class="dynamic-site-title text-pink-600">智能拍貼機</span> <span class="text-lg">後台</span>
             </h1>
             <div class="flex gap-4 items-center">
                 <span id="admin-user-display" class="text-sm font-bold text-gray-600 hidden md:block bg-gray-100 px-3 py-1 rounded-full"></span>
@@ -454,7 +458,7 @@
         // ==========================================
         // 初始化 Firebase
         // ==========================================
-      const firebaseConfig = {
+        const firebaseConfig = {
   apiKey: "AIzaSyC4xX1pgQECCv_0BPJ7c3evNJHDLPvZkmE",
   authDomain: "photobooth-92401.firebaseapp.com",
   projectId: "photobooth-92401",
@@ -474,7 +478,8 @@
             console.warn("Firebase 初始化失敗，將以離線模式運行");
         }
 
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKLK6bTOdKJerILvxQXOPJ6gHcdtGGJU-xa4ajgbTR9LDnUC9Od6Dn6gHRSlNqHqXY/exec";
+       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKLK6bTOdKJerILvxQXOPJ6gHcdtGGJU-xa4ajgbTR9LDnUC9Od6Dn6gHRSlNqHqXY/exec";
+
         // ==========================================
         // 預設邊框
         // ==========================================
@@ -496,12 +501,12 @@
                 <text x="400" y="760" font-family="monospace" font-size="30" fill="white" text-anchor="middle" font-weight="bold" background="black">/// FILM STRIP ///</text>
             </svg>
         `);
-        const defaultFrame3 = "https://raw.githubusercontent.com/wenchun0910-svg/20PhotoBooth/main/03.png";
+          const defaultFrame3 = "https://raw.githubusercontent.com/wenchun0910-svg/20PhotoBooth/main/00.png";
 
         const DEFAULT_FRAMES = [
             { id: 'def1', url: defaultFrame1, name: 'Love Moment', isDefault: true },
             { id: 'def2', url: defaultFrame2, name: 'Film Strip', isDefault: true },
-            { id: 'def3', url: defaultFrame3, name: '可愛猴子', isDefault: true }
+            { id: 'def3', url: defaultFrame3, name: '可愛海兔', isDefault: true }
         ];
 
         // ==========================================
