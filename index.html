@@ -10,14 +10,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- QRCode.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- ⭐ 新增：jsPDF 用於下載 PDF 檔 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- ⭐ 修改：匯入 Klee One (芫荽體的原始字型，作為雲端完美替代方案) -->
+    <!-- 匯入 Klee One (芫荽體的原始字型，作為雲端完美替代方案) -->
     <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        /* ⭐ 修改：設定首選為芫荽體，若無則自動降級使用激似的 Klee One */
+        /* 設定首選為芫荽體，若無則自動降級使用激似的 Klee One */
         .font-cute { 
             font-family: 'Iansui', 'Iansui-Regular', 'Klee One', cursive; 
             letter-spacing: 1px;
@@ -60,10 +62,9 @@
         }, 3000);
     </script>
 </head>
-<!-- ⭐ 修改：加上 relative 與 z-0 建立堆疊層級，避免背景 SVG 在預覽畫面中被吃掉隱藏 -->
 <body class="min-h-screen text-gray-800 flex flex-col overflow-x-hidden bg-[#f8f9fa] relative z-0">
 
-    <!-- ⭐ 新增：可愛動物風格 SVG 背景層 -->
+    <!-- 可愛動物風格 SVG 背景層 -->
     <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
         <!-- 藍鳥 (左上) -->
         <svg class="absolute top-[5%] left-[5%] w-32 h-32 md:w-48 md:h-48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -131,10 +132,9 @@
 
     <!-- 全局載入畫面 -->
     <div id="global-loading" class="flex-1 flex flex-col items-center justify-center absolute inset-0 z-50 bg-white/80 backdrop-blur-sm">
-        <div class="w-32 h-32 md:w-60 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg mb-4 animate-bounce bg-white flex items-center justify-center">
+        <div class="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg mb-4 animate-bounce bg-white flex items-center justify-center">
             <img src="logo.png" alt="Loading Logo" class="w-full h-full object-cover transform scale-[1.1] -translate-x-[8%] -translate-y-[4%]">
         </div>
-        <!-- ⭐ 套用可愛字體 -->
         <p class="font-cute text-gray-800 font-bold tracking-widest text-lg md:text-xl">系統啟動中...</p>
     </div>
 
@@ -144,7 +144,6 @@
             <div class="w-20 h-20 md:w-24 md:h-24 mr-3 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center shrink-0">
                 <img src="logo.png" alt="Logo" class="w-full h-full object-cover transform scale-[1.1] -translate-x-[8%] -translate-y-[4%]">
             </div>
-            <!-- ⭐ 套用動態標題 class 與可愛字型 -->
             <h1 class="dynamic-site-title font-cute text-2xl md:text-3xl lg:text-4xl font-black text-gray-800 tracking-wider">智能拍貼機</h1>
         </div>
         
@@ -209,25 +208,31 @@
     <!-- 拍攝結果與下載視圖 -->
     <div id="view-result" class="flex-1 flex flex-col items-center justify-center p-4 relative hidden">
         <div class="glass-panel bg-white/90 p-6 md:p-10 lg:p-12 rounded-3xl shadow-2xl max-w-2xl lg:max-w-4xl xl:max-w-5xl w-full flex flex-col md:flex-row gap-8 items-center border border-white">
-            <div class="w-full md:w-1/2 flex flex-col items-center">
+            <div class="w-full md:w-1/2 flex flex-col items-center relative">
                 <img id="result-image" class="w-full aspect-square object-cover rounded-2xl shadow-md border-4 border-white" src="" alt="拍攝結果">
             </div>
             
             <div class="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
-                <!-- ⭐ 套用可愛字型 -->
                 <h2 class="font-cute text-3xl md:text-4xl font-black text-gray-800 mb-2">拍攝完成！✨</h2>
-                <p class="text-gray-600 md:text-lg mb-6 font-medium">掃描下方 QRCode 或點擊按鈕儲存這份美好回憶。</p>
+                <p class="text-gray-600 md:text-lg mb-6 font-medium">掃描下方 QRCode 或點擊按鈕儲存/列印美好回憶。</p>
                 
                 <div class="bg-gray-50 p-4 rounded-xl shadow-inner mb-6 inline-block border border-gray-200">
                     <div id="qrcode"></div>
                 </div>
 
-                <div class="flex gap-4 w-full justify-center md:justify-start">
-                    <button id="btn-retake" class="px-6 py-3 md:px-8 md:py-4 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-bold md:text-lg hover:bg-gray-50 transition shadow-sm w-1/2 md:w-auto">
-                        <i class="fa-solid fa-arrow-rotate-left mr-2"></i> 重拍
+                <!-- ⭐ 修改：加入刪除與列印按鈕，採用 flex-wrap 避免擠壓 -->
+                <div class="flex flex-wrap gap-3 w-full justify-center md:justify-start">
+                    <button id="btn-retake" class="px-5 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-bold hover:bg-gray-50 transition shadow-sm">
+                        <i class="fa-solid fa-arrow-rotate-left mr-1"></i> 保留並重拍
                     </button>
-                    <button id="btn-download" class="px-6 py-3 md:px-8 md:py-4 bg-pink-500 text-white rounded-full font-bold md:text-lg hover:bg-pink-600 transition shadow-md w-1/2 md:w-auto">
-                        <i class="fa-solid fa-download mr-2"></i> 下載照片
+                    <button id="btn-delete-result" class="px-5 py-2.5 bg-red-500 border-2 border-red-500 text-white rounded-full font-bold hover:bg-red-600 transition shadow-md hidden">
+                        <i class="fa-solid fa-trash mr-1"></i> 刪除雲端檔案
+                    </button>
+                    <button id="btn-download" class="px-5 py-2.5 bg-pink-500 border-2 border-pink-500 text-white rounded-full font-bold hover:bg-pink-600 transition shadow-md">
+                        <i class="fa-solid fa-image mr-1"></i> 下載照片
+                    </button>
+                    <button id="btn-download-pdf" class="px-5 py-2.5 bg-blue-500 border-2 border-blue-500 text-white rounded-full font-bold hover:bg-blue-600 transition shadow-md">
+                        <i class="fa-solid fa-file-pdf mr-1"></i> 列印 PDF
                     </button>
                 </div>
             </div>
@@ -237,7 +242,6 @@
     <!-- 單純瀏覽照片視圖 -->
     <div id="view-shared" class="flex-1 flex flex-col items-center justify-center p-4 bg-gray-900/90 hidden">
         <div class="max-w-md w-full flex flex-col items-center gap-6 bg-white p-6 rounded-3xl shadow-2xl">
-            <!-- ⭐ 套用可愛字型 -->
             <h1 class="font-cute text-gray-800 text-2xl font-black tracking-widest text-center">✨ 回憶珍藏 ✨</h1>
             <div id="shared-loading" class="text-gray-500"><i class="fa-solid fa-spinner fa-spin text-3xl"></i></div>
             <img id="shared-image" class="w-full aspect-square object-cover rounded-2xl shadow-md border-4 border-gray-100 hidden" src="" alt="Shared Photo">
@@ -257,6 +261,27 @@
             </div>
             <div id="frame-select-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4 overflow-y-auto custom-scrollbar pb-6 pr-2">
                 <!-- 縮圖將由 JS 動態生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ⭐ 新增：後台單張照片完整預覽視窗 -->
+    <div id="modal-photo-preview" class="fixed inset-0 bg-gray-900/90 z-50 flex items-center justify-center hidden backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-3xl p-4 md:p-6 w-full max-w-3xl shadow-2xl relative border border-gray-100 flex flex-col">
+            <button id="btn-close-photo-preview" class="absolute top-2 right-2 md:top-4 md:right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center transition z-10"><i class="fa-solid fa-xmark text-xl"></i></button>
+            
+            <h2 class="font-cute text-xl font-bold text-gray-800 mb-4 px-2">照片預覽</h2>
+            <div class="w-full flex justify-center bg-gray-50 rounded-2xl overflow-hidden mb-5 relative" style="height: 60vh;">
+                <img id="preview-modal-img" class="w-full h-full object-contain" src="">
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-3">
+                <button id="btn-preview-download-img" class="px-6 py-3 bg-pink-500 text-white rounded-full font-bold hover:bg-pink-600 transition shadow-md">
+                    <i class="fa-solid fa-image mr-2"></i> 下載原圖
+                </button>
+                <button id="btn-preview-download-pdf" class="px-6 py-3 bg-blue-500 text-white rounded-full font-bold hover:bg-blue-600 transition shadow-md">
+                    <i class="fa-solid fa-file-pdf mr-2"></i> 下載 PDF 列印
+                </button>
             </div>
         </div>
     </div>
@@ -288,7 +313,6 @@
     <div id="view-admin-dashboard" class="flex-1 flex flex-col bg-[#f8f9fa]/95 backdrop-blur-md hidden h-screen overflow-hidden">
         <!-- 頂部導航 -->
         <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 border-b border-gray-200">
-            <!-- ⭐ 套用可愛字型 -->
             <h1 class="font-cute text-xl md:text-2xl font-black text-gray-800 flex items-center gap-2">
                 <i class="fa-solid fa-gear text-gray-400 text-xl"></i>
                 <span class="dynamic-site-title text-pink-600">智能拍貼機</span> <span class="text-lg">後台</span>
@@ -324,7 +348,7 @@
                 <!-- 右側選單區 -->
                 <div class="flex flex-col gap-6 h-fit">
                     
-                    <!-- ⭐ 新增：外觀設定區 (僅管理員可見) -->
+                    <!-- 外觀設定區 (僅管理員可見) -->
                     <div id="section-site-settings" class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100 flex flex-col h-fit hidden">
                         <h2 class="text-xl font-black text-gray-800 mb-4 border-b pb-3"><i class="fa-solid fa-palette text-pink-500 mr-2"></i>外觀設定</h2>
                         <div class="flex flex-col gap-2">
@@ -372,7 +396,7 @@
         </div>
     </div>
 
-    <!-- 修改密碼視窗 -->
+    <!-- 修改密碼與協作者視窗 -->
     <div id="modal-change-password" class="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center hidden backdrop-blur-sm p-4 transition-opacity">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative border border-gray-100">
             <button id="btn-close-password-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
@@ -388,7 +412,6 @@
         </div>
     </div>
 
-    <!-- 新增協作者視窗 -->
     <div id="modal-add-collaborator" class="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center hidden backdrop-blur-sm p-4 transition-opacity">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative border border-gray-100">
             <button id="btn-close-collab-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
@@ -424,6 +447,10 @@
         let unsubscribeFrames = null;
         let currentMode = 'init'; 
 
+        // 紀錄目前剛上傳的照片，用於重拍刪除功能
+        let lastUploadedPhotoId = null;
+        let lastUploadedDriveId = null;
+
         // 分頁與批次刪除狀態
         let allAdminPhotos = []; 
         let currentPhotoPage = 1; 
@@ -452,7 +479,6 @@
         let capturedShots = []; 
         let isShootingSequence = false; 
 
-        // 動態標題變數
         let currentSiteTitle = "智能拍貼機";
 
         // ==========================================
@@ -478,7 +504,7 @@
             console.warn("Firebase 初始化失敗，將以離線模式運行");
         }
 
-       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKLK6bTOdKJerILvxQXOPJ6gHcdtGGJU-xa4ajgbTR9LDnUC9Od6Dn6gHRSlNqHqXY/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKLK6bTOdKJerILvxQXOPJ6gHcdtGGJU-xa4ajgbTR9LDnUC9Od6Dn6gHRSlNqHqXY/exec";
 
         // ==========================================
         // 預設邊框
@@ -501,13 +527,53 @@
                 <text x="400" y="760" font-family="monospace" font-size="30" fill="white" text-anchor="middle" font-weight="bold" background="black">/// FILM STRIP ///</text>
             </svg>
         `);
-          const defaultFrame3 = "https://raw.githubusercontent.com/wenchun0910-svg/20PhotoBooth/main/03.png";
+       const defaultFrame3 = "https://raw.githubusercontent.com/wenchun0910-svg/20PhotoBooth/main/03.png";
 
         const DEFAULT_FRAMES = [
             { id: 'def1', url: defaultFrame1, name: 'Love Moment', isDefault: true },
             { id: 'def2', url: defaultFrame2, name: 'Film Strip', isDefault: true },
             { id: 'def3', url: defaultFrame3, name: '可愛猴子', isDefault: true }
         ];
+
+        // ==========================================
+        // 輔助函式：產生 PDF
+        // ==========================================
+        async function downloadAsPDF(imgSource) {
+            try {
+                // 使用 UMD 版本的 jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+                
+                let base64Data = imgSource;
+                
+                // 如果是遠端網址，先 fetch 下來轉成 base64，避免 jsPDF 遇到 CORS 問題
+                if (!imgSource.startsWith('data:')) {
+                    const response = await fetch(imgSource);
+                    const blob = await response.blob();
+                    base64Data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                }
+                
+                // A4 尺寸：210 x 297 mm
+                const margin = 20;
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const maxImgWidth = pdfWidth - (margin * 2);
+                
+                // 置中計算 (圖片為 1:1 正方形)
+                const x = margin;
+                const y = (pdfHeight - maxImgWidth) / 2;
+                
+                pdf.addImage(base64Data, 'JPEG', x, y, maxImgWidth, maxImgWidth);
+                pdf.save(`photobooth_${Date.now()}.pdf`);
+            } catch (err) {
+                console.error("PDF 產生失敗:", err);
+                alert("無法產生 PDF，可能是圖片跨域權限受限。");
+            }
+        }
 
         // ==========================================
         // 核心邏輯 - 路由與初始化
@@ -539,7 +605,6 @@
                     }
                 });
 
-                // ⭐ 監聽系統標題設定
                 if (db) {
                     const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
                     onSnapshot(configRef, (docSnap) => {
@@ -548,9 +613,7 @@
                         } else {
                             currentSiteTitle = "智能拍貼機";
                         }
-                        // 更新畫面上所有標題
                         document.querySelectorAll('.dynamic-site-title').forEach(el => el.innerText = currentSiteTitle);
-                        // 更新輸入框 (如果沒被 focus 的話)
                         const inputTitle = document.getElementById('admin-input-title');
                         if (inputTitle && document.activeElement !== inputTitle) {
                             inputTitle.value = currentSiteTitle;
@@ -570,19 +633,14 @@
             }, 3000);
         }
 
-        // ==========================================
-        // 儲存自訂標題邏輯
-        // ==========================================
         document.getElementById('btn-save-title')?.addEventListener('click', async () => {
             if (!db) return alert("未連接資料庫");
             const newTitle = document.getElementById('admin-input-title').value.trim();
             if (!newTitle) return;
             
             const btn = document.getElementById('btn-save-title');
-            btn.disabled = true;
-            btn.innerText = "儲存中...";
+            btn.disabled = true; btn.innerText = "儲存中...";
             try {
-                // 將設定存入 settings/config
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), {
                     siteTitle: newTitle
                 }, { merge: true });
@@ -849,6 +907,10 @@
         }
 
         async function uploadAndSavePhoto(imageData) {
+            lastUploadedPhotoId = null;
+            lastUploadedDriveId = null;
+            document.getElementById('btn-delete-result').classList.add('hidden');
+
             if (db && auth && currentUserId) {
                 try {
                     let finalImageUrl = imageData;
@@ -879,6 +941,11 @@
                         userId: currentUserId
                     });
                     
+                    // 記錄上傳的 ID 以供即時刪除
+                    lastUploadedPhotoId = docRef.id;
+                    lastUploadedDriveId = driveFileId;
+                    document.getElementById('btn-delete-result').classList.remove('hidden');
+
                     const shareUrl = window.location.origin + window.location.pathname + '?view=' + docRef.id;
                     generateQRCode(shareUrl);
                 } catch (err) {
@@ -916,7 +983,7 @@
         }
 
         // ==========================================
-        // UI 事件與按鈕綁定 (主畫面)
+        // UI 事件與按鈕綁定 (主畫面與結果視窗)
         // ==========================================
         const classModeActive = "flex-1 py-2 rounded-full text-sm font-bold transition shadow-md bg-pink-500 text-white border-2 border-pink-500";
         const classModeInactive = "flex-1 py-2 rounded-full text-sm font-bold transition shadow-sm bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200";
@@ -951,9 +1018,45 @@
             if (!isCountingDown && !isShootingSequence) startCountdown();
         });
 
+        // 一般保留並重拍 (照片依然留存在雲端)
         document.getElementById('btn-retake').addEventListener('click', () => {
             setupBoothMode();
             document.getElementById('gesture-hint').classList.remove('hidden');
+        });
+
+        // ⭐ 新增：刪除雲端檔案並重拍
+        document.getElementById('btn-delete-result').addEventListener('click', async () => {
+            if(!confirm("確定要刪除這張照片嗎？（將從雲端徹底移除）")) return;
+            const btn = document.getElementById('btn-delete-result');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> 刪除中...';
+
+            try {
+                if (lastUploadedDriveId && typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL.startsWith("https://script.google.com/")) {
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'delete', fileId: lastUploadedDriveId })
+                    }).catch(err => {});
+                }
+                if (lastUploadedPhotoId) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'photos', lastUploadedPhotoId));
+                }
+                
+                setupBoothMode();
+                document.getElementById('gesture-hint').classList.remove('hidden');
+            } catch (err) {
+                alert("刪除時發生錯誤，請稍後再試。");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-trash mr-1"></i> 刪除雲端檔案';
+            }
+        });
+
+        // ⭐ 新增：從結果視窗下載 PDF
+        document.getElementById('btn-download-pdf').addEventListener('click', () => {
+            const imgSrc = document.getElementById('result-image').src;
+            downloadAsPDF(imgSrc);
         });
 
         document.getElementById('btn-open-frame-select').addEventListener('click', () => {
@@ -1062,7 +1165,6 @@
                 userDisplay.innerText = `${isAdmin ? '👑 管理者' : '👤 協作者'}：${username}`;
             }
 
-            // ⭐ 權限控管：顯示/隱藏外觀設定與新增協作者
             const btnCollabModal = document.getElementById('btn-open-collab-modal');
             const sectionSettings = document.getElementById('section-site-settings');
             
@@ -1094,7 +1196,7 @@
             }
         }
 
-        // 渲染相片 (包含核取方塊與分頁)
+        // 渲染相片 (包含核取方塊、點擊預覽與分頁)
         function renderAdminPhotos() {
             const grid = document.getElementById('admin-photos-grid');
             const paginationContainer = document.getElementById('admin-photos-pagination');
@@ -1122,22 +1224,30 @@
                 const isSelected = selectedPhotos.has(photo.id);
                 div.className = `relative group rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-fit transition-all duration-200 ${isSelected ? 'ring-4 ring-pink-500 scale-[0.98]' : ''}`;
                 
+                // ⭐ 修改：加入 cursor-pointer，讓圖片看起來是可以點擊放大的
                 div.innerHTML = `
-                    <img class="admin-photo-img w-full aspect-square object-cover" loading="lazy">
+                    <img class="admin-photo-img w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition" loading="lazy" title="點擊放大並列印">
                     <div class="absolute top-3 left-3 z-20">
                         <input type="checkbox" class="photo-checkbox w-6 h-6 accent-pink-500 rounded cursor-pointer drop-shadow-md border-2 border-white shadow-sm" data-id="${photo.id}" ${isSelected ? 'checked' : ''}>
                     </div>
-                    <div class="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-2 pointer-events-none backdrop-blur-sm">
-                        <span class="text-white text-xs px-2 text-center">${dateStr}</span>
-                        <button class="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-red-600 shadow-md btn-del-photo pointer-events-auto" data-id="${photo.id}" data-drive-id="${photo.driveFileId || ''}">
-                            <i class="fa-solid fa-trash"></i> 刪除
+                    <div class="absolute inset-x-0 bottom-0 bg-black/50 p-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition pointer-events-none backdrop-blur-sm">
+                        <span class="text-white text-xs px-2">${dateStr}</span>
+                        <button class="bg-red-500 text-white w-8 h-8 rounded-full hover:bg-red-600 shadow-md btn-del-photo pointer-events-auto" data-id="${photo.id}" data-drive-id="${photo.driveFileId || ''}" title="刪除照片">
+                            <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
                 `;
                 
                 const imgEl = div.querySelector('.admin-photo-img');
+                imgEl.crossOrigin = "anonymous";
                 imgEl.referrerPolicy = "no-referrer";
                 imgEl.src = src; 
+
+                // ⭐ 新增：綁定點擊圖片開啟預覽與列印視窗
+                imgEl.addEventListener('click', () => {
+                    document.getElementById('preview-modal-img').src = src;
+                    document.getElementById('modal-photo-preview').classList.remove('hidden');
+                });
 
                 const checkbox = div.querySelector('.photo-checkbox');
                 checkbox.addEventListener('change', (e) => {
@@ -1204,6 +1314,26 @@
                 if (currentPhotoPage < totalPages) { currentPhotoPage++; renderAdminPhotos(); }
             });
         }
+
+        // ==========================================
+        // 後台單張照片預覽視窗事件
+        // ==========================================
+        document.getElementById('btn-close-photo-preview')?.addEventListener('click', () => {
+            document.getElementById('modal-photo-preview').classList.add('hidden');
+        });
+
+        document.getElementById('btn-preview-download-img')?.addEventListener('click', () => {
+            const src = document.getElementById('preview-modal-img').src;
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = `photo-${Date.now()}.jpg`;
+            a.click();
+        });
+
+        document.getElementById('btn-preview-download-pdf')?.addEventListener('click', () => {
+            const src = document.getElementById('preview-modal-img').src;
+            downloadAsPDF(src);
+        });
 
         // ==========================================
         // 批次刪除邏輯
