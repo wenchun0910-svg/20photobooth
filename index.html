@@ -132,7 +132,7 @@
     <!-- 全局載入畫面 -->
     <div id="global-loading" class="flex-1 flex flex-col items-center justify-center absolute inset-0 z-50 bg-white/80 backdrop-blur-sm">
         <div class="w-32 h-32 md:w-60 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg mb-4 animate-bounce bg-white flex items-center justify-center">
-            <img src="logo.png" alt="Loading Logo" class="w-full h-full object-cover transform scale-[1.2] -translate-x-[8%] -translate-y-[4%]">
+            <img src="logo.png" alt="Loading Logo" class="w-full h-full object-cover transform scale-[1.1] -translate-x-[8%] -translate-y-[4%]">
         </div>
         <!-- ⭐ 套用可愛字體 -->
         <p class="font-cute text-gray-800 font-bold tracking-widest text-lg md:text-xl">系統啟動中...</p>
@@ -142,7 +142,7 @@
     <div id="view-booth" class="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative hidden w-full overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-center mb-2 md:mb-4 bg-white/70 px-6 py-2 rounded-full backdrop-blur-sm shadow-sm">
             <div class="w-20 h-20 md:w-24 md:h-24 mr-3 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white flex items-center justify-center shrink-0">
-                <img src="logo.png" alt="Logo" class="w-full h-full object-cover transform scale-[1.3] -translate-x-[8%] -translate-y-[4%]">
+                <img src="logo.png" alt="Logo" class="w-full h-full object-cover transform scale-[1.1] -translate-x-[8%] -translate-y-[4%]">
             </div>
             <!-- ⭐ 套用動態標題 class 與可愛字型 -->
             <h1 class="dynamic-site-title font-cute text-2xl md:text-3xl lg:text-4xl font-black text-gray-800 tracking-wider">智能拍貼機</h1>
@@ -270,11 +270,11 @@
             <form id="form-login" class="flex flex-col gap-4">
                 <div>
                     <label class="block text-sm font-bold text-gray-600 mb-1">帳號</label>
-                    <input type="text" id="login-username" placeholder="預設: admin" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
+                    <input type="text" id="login-username" placeholder="" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-600 mb-1">密碼</label>
-                    <input type="password" id="login-password" placeholder="預設: admin123" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
+                    <input type="password" id="login-password" placeholder="" required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-300 focus:outline-none bg-gray-50">
                 </div>
                 <button type="submit" id="btn-submit-login" class="w-full bg-gray-800 text-white py-3 rounded-xl font-bold hover:bg-gray-900 transition mt-2 shadow-md">
                     安全登入
@@ -506,7 +506,7 @@
         const DEFAULT_FRAMES = [
             { id: 'def1', url: defaultFrame1, name: 'Love Moment', isDefault: true },
             { id: 'def2', url: defaultFrame2, name: 'Film Strip', isDefault: true },
-            { id: 'def3', url: defaultFrame3, name: '可愛海兔', isDefault: true }
+            { id: 'def3', url: defaultFrame3, name: '可愛猴子', isDefault: true }
         ];
 
         // ==========================================
